@@ -1,0 +1,6 @@
+{
+  "name": "Mother of Thousands Bio-Simulator & Ultrasound Translator",
+  "description": "Interactive botanical simulation of Kalanchoe daigremontiana featuring asexual reproduction mechanics, real-time ultrasonic acoustic translation (20-100 kHz), and bio-acoustic AI communication.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mother of Thousands (Kalanchoe daigremontiana) Bio-Simulator</title>
+    <style>
+        :root {
+            --bg-dark: #070f0b;
+            --panel-bg: rgba(12, 26, 18, 0.85);
+            --border-green: rgba(46, 204, 113, 0.3);
+            --green-glow: #2ecc71;
+            --green-bright: #00ff66;
+            --text-main: #e8f5e9;
+            --text-dim: #81c784;
+            --accent-cyan: #00e5ff;
+            --accent-purple: #ab47bc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg-dark);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: var(--text-main);
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .hud-panel {
+            position: absolute;
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-green);
+            border-radius: 12px;
+            padding: 14px;
+            z-index: 10;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7);
+        }
+
+        #top-bar {
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+        }
+
+        .title-group h1 {
+            font-size: 1.1rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--green-glow);
+            text-shadow: 0 0 10px rgba(46, 204, 113, 0.4);
+        }
+
+        .stats-badge {
+            display: flex;
+            gap: 16px;
+            font-size: 0.85rem;
+            background: rgba(0,0,0,0.5);
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .stat-item span {
+            color: var(--green-bright);
+            font-weight: bold;
+        }
+
+        #controls-panel {
+            top: 90px;
+            left: 16px;
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 4px;
+            margin-top: 4px;
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        button {
+            background: rgba(18, 48, 28, 0.8);
+            border: 1px solid var(--border-green);
+            color: var(--text-main);
+            padding: 8px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: rgba(46, 204, 113, 0.25);
+            border-color: var(--green-bright);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 0.8rem;
+        }
+
+        .slider-group label {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-dim);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--green-glow);
+        }
+
+        #spectrogram-container {
+            width: 100%;
+            height: 45px;
+            background: rgba(0,0,0,0.6);
+            border: 1px solid var(--border-green);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        #spectrogramCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        #chat-panel {
+            bottom: 16px;
+            right: 16px;
+            width: 360px;
+            height: 340px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 4px;
+            font-size: 0.82rem;
+            margin-bottom: 10px;
+        }
+
+        .msg {
+            padding: 8px 10px;
+            border-radius: 8px;
+            max-width: 88%;
+            word-wrap: break-word;
+            line-height: 1.35;
+        }
+
+        .msg-user {
+            align-self: flex-end;
+            background: rgba(0, 229, 255, 0.15);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            color: #b2ebf2;
+        }
+
+        .msg-plant {
+            align-self: flex-start;
+            background: rgba(46, 204, 113, 0.15);
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            color: #a5d6a7;
+        }
+
+        .freq-tag {
+            font-family: monospace;
+            font-size: 0.7rem;
+            color: var(--accent-cyan);
+            display: block;
+            margin-bottom: 2px;
+            opacity: 0.9;
+        }
+
+        #chat-input-container {
+            display: flex;
+            gap: 6px;
+        }
+
+        #chat-input {
+            flex: 1;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--border-green);
+            border-radius: 6px;
+            padding: 8px;
+            color: white;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        #chat-input:focus {
+            border-color: var(--green-bright);
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+
+        .toggle-row input {
+            accent-color: var(--green-glow);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container">
+        <canvas id="simCanvas"></canvas>
+    </div>
+
+    <!-- Top Status Bar -->
+    <div id="top-bar" class="hud-panel">
+        <div class="title-group">
+            <h1>Mother of Thousands</h1>
+        </div>
+        <div class="stats-badge">
+            <div class="stat-item">Plants: <span id="count-plants">1</span></div>
+            <div class="stat-item">Attached Plantlets: <span id="count-attached">0</span></div>
+            <div class="stat-item">Soil Plantlets: <span id="count-soil">0</span></div>
+        </div>
+    </div>
+
+    <!-- Sidebar Controls -->
+    <div id="controls-panel" class="hud-panel">
+        <div class="section-title">Save & Load Options</div>
+        <div class="btn-grid">
+            <button onclick="saveSimulation()">Save Local</button>
+            <button onclick="loadSimulation()">Load Local</button>
+            <button onclick="exportJSON()">Export JSON</button>
+            <button onclick="triggerImport()">Import JSON</button>
+        </div>
+        <input type="file" id="file-input" accept=".json" onchange="importJSON(event)">
+        
+        <div class="toggle-row">
+            <span>Auto-Save (15s):</span>
+            <input type="checkbox" id="autosave-toggle" checked>
+        </div>
+
+        <div class="section-title">Botanical Actions</div>
+        <div class="btn-grid">
+            <button onclick="shakeStem()">Shake Stem</button>
+            <button onclick="addRain()">Water Soil</button>
+        </div>
+
+        <div class="section-title">Environment Controls</div>
+        <div class="slider-group">
+            <label>Wind Sway <span id="val-wind">1.0x</span></label>
+            <input type="range" id="wind-slider" min="0" max="3" step="0.1" value="1.0" oninput="updateWind(this.value)">
+        </div>
+        <div class="slider-group">
+            <label>Soil Moisture <span id="val-moisture">60%</span></label>
+            <input type="range" id="moisture-slider" min="10" max="100" value="60" oninput="updateMoisture(this.value)">
+        </div>
+        <div class="slider-group">
+            <label>Time Warp <span id="val-warp">1x</span></label>
+            <input type="range" id="warp-slider" min="1" max="10" value="1" oninput="updateWarp(this.value)">
+        </div>
+
+        <div class="section-title">Ultrasound Spectrogram (20-100 kHz)</div>
+        <div id="spectrogram-container">
+            <canvas id="spectrogramCanvas"></canvas>
+        </div>
+    </div>
+
+    <!-- Phyto-Acoustic Chatbot -->
+    <div id="chat-panel" class="hud-panel">
+        <div class="section-title">Phyto-Acoustic Ultrasound Translator</div>
+        <div id="chat-messages">
+            <div class="msg msg-plant">
+                <span class="freq-tag">[54.8 kHz :: ACOUSTIC_HARMONY]</span>
+                We are the Kalanchoe collective. Send acoustic queries in English to commune with our cellular network.
+            </div>
+        </div>
+        <div id="chat-input-container">
+            <input type="text" id="chat-input" placeholder="Type message to plant..." onkeypress="handleChatKey(event)">
+            <button onclick="sendChatMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const specCanvas = document.getElementById('spectrogramCanvas');
+        const specCtx = specCanvas.getContext('2d');
+
+        let width, height;
+        let windFactor = 1.0;
+        let soilMoisture = 60;
+        let timeWarp = 1;
+        let windTime = 0;
+
+        // Audio Synth Context
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        // Simulation Entities
+        let plants = [];
+        let fallingPlantlets = [];
+        let soilPlantlets = [];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            specCanvas.width = specCanvas.offsetWidth;
+            specCanvas.height = specCanvas.offsetHeight;
+        }
+        window.addEventListener('resize', resize);
+
+        // Core Plant Class
+        class MotherPlant {
+            constructor(x, scale = 1.0) {
+                this.x = x;
+                this.scale = scale;
+                this.age = 0;
+                this.plantletsAttached = [];
+                this.generateLeaves();
+            }
+
+            generateLeaves() {
+                this.leaves = [
+                    { angle: -Math.PI / 4, length: 120 * this.scale, notches: 8 },
+                    { angle: Math.PI / 4, length: 120 * this.scale, notches: 8 },
+                    { angle: -Math.PI / 6, length: 90 * this.scale, notches: 6 },
+                    { angle: Math.PI / 6, length: 90 * this.scale, notches: 6 }
+                ];
+
+                // Populate attached plantlets
+                this.leaves.forEach((leaf, lIdx) => {
+                    for (let i = 0; i < leaf.notches; i++) {
+                        this.plantletsAttached.push({
+                            leafIndex: lIdx,
+                            notchIndex: i,
+                            progress: Math.random() * 0.8 + 0.2, // Growth %
+                            mature: Math.random() > 0.4
+                        });
+                    }
+                });
+            }
+
+            draw() {
+                const stemBaseX = this.x;
+                const stemBaseY = height - 40;
+                const stemHeight = 220 * this.scale;
+                
+                // Wind Sway Physics
+                const sway = Math.sin(windTime * 0.02) * 15 * windFactor;
+                const tipX = stemBaseX + sway;
+                const tipY = stemBaseY - stemHeight;
+
+                ctx.save();
+                
+                // Draw Stem
+                ctx.strokeStyle = '#2d5a27';
+                ctx.lineWidth = 12 * this.scale;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(stemBaseX, stemBaseY);
+                ctx.quadraticCurveTo(stemBaseX, stemBaseY - stemHeight / 2, tipX, tipY);
+                ctx.stroke();
+
+                // Draw Succulent Leaves
+                this.leaves.forEach((leaf, idx) => {
+                    const attachRatio = (idx < 2) ? 0.6 : 0.85;
+                    const lx = stemBaseX + (tipX - stemBaseX) * attachRatio;
+                    const ly = stemBaseY - stemHeight * attachRatio;
+
+                    ctx.save();
+                    ctx.translate(lx, ly);
+                    ctx.rotate(leaf.angle + (sway * 0.005));
+
+                    // Leaf Body
+                    ctx.fillStyle = '#388e3c';
+                    ctx.strokeStyle = '#1b5e20';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.quadraticCurveTo(leaf.length / 2, -25, leaf.length, 0);
+                    ctx.quadraticCurveTo(leaf.length / 2, 25, 0, 0);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Mottled Spots
+                    ctx.fillStyle = 'rgba(74, 20, 140, 0.3)';
+                    for (let s = 20; s < leaf.length - 10; s += 15) {
+                        ctx.beginPath();
+                        ctx.arc(s, (s % 20 === 0 ? 5 : -5), 4, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    ctx.restore();
+                });
+
+                // Render Attached Plantlets
+                let countAttached = 0;
+                this.plantletsAttached.forEach(p => {
+                    countAttached++;
+                    const leaf = this.leaves[p.leafIndex];
+                    const attachRatio = (p.leafIndex < 2) ? 0.6 : 0.85;
+                    const lx = stemBaseX + (tipX - stemBaseX) * attachRatio;
+                    const ly = stemBaseY - stemHeight * attachRatio;
+
+                    const step = leaf.length / (leaf.notches + 1);
+                    const notchDistance = step * (p.notchIndex + 1);
+                    
+                    const pAngle = leaf.angle + (sway * 0.005);
+                    const px = lx + Math.cos(pAngle) * notchDistance;
+                    const py = ly + Math.sin(pAngle) * notchDistance;
+
+                    // Plantlet graphics
+                    ctx.save();
+                    ctx.translate(px, py);
+                    ctx.fillStyle = '#66bb6a';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 4 * p.progress, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Roots
+                    if (p.progress > 0.6) {
+                        ctx.strokeStyle = '#a1887f';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(0, 2); ctx.lineTo(0, 8);
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                });
+
+                ctx.restore();
+                return countAttached;
+            }
+        }
+
+        class FallingPlantlet {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vy = 0;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.rotation = Math.random() * Math.PI;
+            }
+
+            update() {
+                this.vy += 0.15 * timeWarp;
+                this.x += this.vx * timeWarp;
+                this.y += this.vy * timeWarp;
+
+                if (this.y >= height - 40) {
+                    playUltrasoundBeep(35000 + Math.random() * 10000);
+                    soilPlantlets.push({ x: this.x, y: height - 45, age: 0 });
+                    return false;
+                }
+                return true;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.fillStyle = '#81c784';
+                ctx.beginPath();
+                ctx.arc(0, 0, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Initialize Simulation
+        resize();
+        plants.push(new MotherPlant(width / 2));
+
+        // Audio & Visual Spectrogram FX
+        function playUltrasoundBeep(freq) {
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                // Audio Context audible fallback pitch shift
+                osc.frequency.setValueAtTime(freq / 50, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.15);
+            } catch (e) {}
+
+            triggerSpectrogramPulse(freq);
+        }
+
+        function triggerSpectrogramPulse(freq) {
+            const y = specCanvas.height - ((freq - 20000) / 80000) * specCanvas.height;
+            specCtx.fillStyle = '#00e5ff';
+            specCtx.fillRect(specCanvas.width - 10, y, 8, 4);
+        }
+
+        function drawSpectrogramBackground() {
+            specCtx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+            specCtx.fillRect(0, 0, specCanvas.width, specCanvas.height);
+        }
+
+        // Action Handlers
+        function shakeStem() {
+            if (plants.length === 0) return;
+            const p = plants[0];
+            for (let i = p.plantletsAttached.length - 1; i >= 0; i--) {
+                if (Math.random() > 0.5) {
+                    fallingPlantlets.push(new FallingPlantlet(p.x + (Math.random()*40-20), height - 200));
+                    p.plantletsAttached.splice(i, 1);
+                }
+            }
+            playUltrasoundBeep(65000);
+        }
+
+        function addRain() {
+            soilMoisture = Math.min(100, soilMoisture + 20);
+            document.getElementById('moisture-slider').value = soilMoisture;
+            document.getElementById('val-moisture').innerText = `${soilMoisture}%`;
+            playUltrasoundBeep(45000);
+        }
+
+        function updateWind(v) {
+            windFactor = parseFloat(v);
+            document.getElementById('val-wind').innerText = `${v}x`;
+        }
+
+        function updateMoisture(v) {
+            soilMoisture = parseInt(v);
+            document.getElementById('val-moisture').innerText = `${v}%`;
+        }
+
+        function updateWarp(v) {
+            timeWarp = parseInt(v);
+            document.getElementById('val-warp').innerText = `${v}x`;
+        }
+
+        // Save & Load Functionality
+        function saveSimulation() {
+            const state = {
+                plants: plants.map(p => ({ x: p.x, scale: p.scale, age: p.age, plantletsAttached: p.plantletsAttached })),
+                soilPlantlets: soilPlantlets,
+                soilMoisture: soilMoisture,
+                windFactor: windFactor,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('mother_plant_sim_save', JSON.stringify(state));
+            addChatMessage('System', 'Simulation state saved to browser storage.');
+        }
+
+        function loadSimulation() {
+            const saved = localStorage.getItem('mother_plant_sim_save');
+            if (!saved) {
+                addChatMessage('System', 'No save data found in storage.');
+                return;
+            }
+            restoreState(JSON.parse(saved));
+            addChatMessage('System', 'Simulation state successfully loaded!');
+        }
+
+        function restoreState(state) {
+            soilMoisture = state.soilMoisture || 60;
+            windFactor = state.windFactor || 1.0;
+            soilPlantlets = state.soilPlantlets || [];
+            
+            document.getElementById('moisture-slider').value = soilMoisture;
+            document.getElementById('val-moisture').innerText = `${soilMoisture}%`;
+            document.getElementById('wind-slider').value = windFactor;
+            document.getElementById('val-wind').innerText = `${windFactor}x`;
+
+            plants = [];
+            if (state.plants) {
+                state.plants.forEach(sp => {
+                    let mp = new MotherPlant(sp.x, sp.scale);
+                    mp.age = sp.age;
+                    mp.plantletsAttached = sp.plantletsAttached;
+                    plants.push(mp);
+                });
+            }
+        }
+
+        function exportJSON() {
+            const state = {
+                plants: plants.map(p => ({ x: p.x, scale: p.scale, age: p.age, plantletsAttached: p.plantletsAttached })),
+                soilPlantlets: soilPlantlets,
+                soilMoisture: soilMoisture,
+                windFactor: windFactor
+            };
+            const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `mother_plant_sim_${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function triggerImport() {
+            document.getElementById('file-input').click();
+        }
+
+        function importJSON(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    restoreState(JSON.parse(event.target.result));
+                    addChatMessage('System', 'Imported save file loaded!');
+                } catch(err) {
+                    addChatMessage('System', 'Error parsing JSON file.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Auto Save Interval (15 seconds)
+        setInterval(() => {
+            if (document.getElementById('autosave-toggle').checked) {
+                saveSimulation();
+            }
+        }, 15000);
+
+        // Chat & Translation Engine
+        function addChatMessage(sender, text, freqText = null) {
+            const container = document.getElementById('chat-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${sender === 'You' ? 'msg-user' : 'msg-plant'}`;
+
+            if (freqText) {
+                const fSpan = document.createElement('span');
+                fSpan.className = 'freq-tag';
+                fSpan.innerText = freqText;
+                msgDiv.appendChild(fSpan);
+            }
+
+            const txt = document.createTextNode(text);
+            msgDiv.appendChild(txt);
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const val = input.value.trim();
+            if (!val) return;
+
+            addChatMessage('You', val);
+            input.value = '';
+
+            setTimeout(() => {
+                const kHz = (35 + Math.random() * 55).toFixed(1);
+                const freqTag = `[${kHz} kHz :: PHYTO_RESPONSE]`;
+                
+                const lower = val.toLowerCase();
+                let resp = "We absorb your acoustic frequency into our leaf cuticle.";
+
+                if (lower.includes('water') || lower.includes('moisture') || lower.includes('rain')) {
+                    addRain();
+                    resp = "Hydration level raised. CAM stomata opening for carbon fixation.";
+                } else if (lower.includes('drop') || lower.includes('shake') || lower.includes('clone')) {
+                    shakeStem();
+                    resp = "Plantlets detached via acoustic resonance!";
+                } else if (lower.includes('save') || lower.includes('store')) {
+                    saveSimulation();
+                    resp = "Colony progress stored into browser storage memory.";
+                }
+
+                addChatMessage('Mother Collective', resp, freqTag);
+                playUltrasoundBeep(parseFloat(kHz) * 1000);
+            }, 500);
+        }
+
+        function handleChatKey(e) {
+            if (e.key === 'Enter') sendChatMessage();
+        }
+
+        // Render & Simulation Loop
+        function loop() {
+            windTime += 1 * timeWarp;
+            
+            // Clear Soil & Background
+            ctx.fillStyle = '#070f0b';
+            ctx.fillRect(0, 0, width, height);
+
+            // Soil Ground Layer
+            ctx.fillStyle = '#1c150d';
+            ctx.fillRect(0, height - 40, width, 40);
+            ctx.fillStyle = '#2e1f10';
+            ctx.fillRect(0, height - 40, width, 4);
+
+            // Render Mother Plants
+            let totalAttached = 0;
+            plants.forEach(p => {
+                totalAttached += p.draw();
+            });
+
+            // Update & Render Falling Plantlets
+            for (let i = fallingPlantlets.length - 1; i >= 0; i--) {
+                if (!fallingPlantlets[i].update()) {
+                    fallingPlantlets.splice(i, 1);
+                } else {
+                    fallingPlantlets[i].draw();
+                }
+            }
+
+            // Render Soil Clones
+            soilPlantlets.forEach(sp => {
+                ctx.fillStyle = '#4caf50';
+                ctx.beginPath();
+                ctx.arc(sp.x, sp.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Spectrogram Background Fade
+            drawSpectrogramBackground();
+
+            // Update UI Badges
+            document.getElementById('count-plants').innerText = plants.length;
+            document.getElementById('count-attached').innerText = totalAttached;
+            document.getElementById('count-soil').innerText = soilPlantlets.length;
+
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+    </script>
+</body>
+</html>
